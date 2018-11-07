@@ -47,17 +47,55 @@ A GUI provides an iterative and visual way to build maps, as it is easy to revie
 
 ## R - Code based software 
 The same map is generated through R, to evaluate the differences in process and output. The process of importing data was efficient: the cleaning of csv file data is automated which created a better workflow for processing the data. R read in different dataset types directly from the internet as well as locally. R seems a more powerful tool for processing large datasets than GUI software such as ArcGIS.  For this particular map, the same shapefiles were used as for the first map.
+```{r Getting the data, include=FALSE}
+library(tidyverse)
+library(geojsonio)
+library(sf)
+library(tmap)
+library(tmaptools)
+#read some data attributes
+LondonData <- read_csv("Ward profile/ward-profiles-excel-version.csv", na = "n/a")
+WardBoundaries <- read_shape("Wards/London_Ward_CityMerged.shp", as.sf = TRUE)
+OS_greenspaces <- read_shape("Greenspaces/OS_LDN_greenspaces.shp", as.sf = TRUE)
+os_transport <- read_shape("Transport/gis_osm_railways_free_1.shp", as.sf = TRUE)
+#convert to a simple features object
+LondonMapSF <- st_as_sf(WardBoundaries)
+#append the data to the geometries
+LondonMapSF <- append_data(LondonMapSF,LondonData, key.shp = "GSS_CODE", key.data = "New code", ignore.duplicates = TRUE)
+```
+
 The CRS for the layers were verified before proceed to plot the map.
 ```{r}
 # pro4 string print
+
 ```
 Simple plots were produced to check the distribution of data, similar to the process for ArcGIS.
 ```{r}
 # plot histogram
 ```
 A simple features object from joining the house price data to the ward boundary shapefile, before employing the library tmaps to create the plots. The colour palette chosen was similar to that of ArcGIS, although ColorBrewer was used, which includes an extensive colour library based on academic research. Jenks natural breaks were specified in the code to classify the colour breaks. 
-```{r}
+```{r Static map}
 # jenks and plot static map
+london_osm <- read_osm(LondonMapSF, type = "osm", zoom = NULL)
+tmap_mode("plot")
+ qtm(london_osm) +
+  tm_shape(OS_greenspaces)+
+   tm_polygons(col = "function.",palette="Greens")+
+   tm_layout(legend.show = FALSE) +
+  tm_shape(os_transport)+
+   tm_lines(col = "fclass",palette="PuRd") +
+   tm_layout(legend.show = FALSE)+
+  tm_shape(LondonMapSF)+
+   tm_polygons("Median House Price - 2014", 
+        style="jenks",
+        palette="Greys",
+        midpoint=NA,
+        title="Median House Price - 2014",
+        alpha = 0.8) +
+  tm_compass(position = c("left", "bottom"),type = "arrow") + 
+  tm_scale_bar(position = c("left", "bottom")) +
+  tm_layout(title = "Median House Price - 2014", legend.position = c("right", "bottom"))
+
 ```
 
 In addition the OS basemap was added, and proved useful for viewing the wider context of the map. 
@@ -65,6 +103,19 @@ Using tmaps to view data interactively at multiple scales was beneficial for the
 
 ```{r}
 # code for plotting interactive map
+library(shinyjs)
+tmap_mode("view")
+tm_shape(LondonMapSF) +
+    tm_polygons("Median House Price - 2014",
+        style="jenks",
+        palette="Greys",
+        midpoint=NA,
+        alpha = 0.5,
+        title="Median House Prices")+
+  tm_shape(OS_greenspaces)+
+  tm_polygons(col = "function.",palette="Greens")+
+tm_shape(os_transport)+
+   tm_lines(col = "fclass",palette="PuRd") 
 ```
 
 A drawback of R is low level of graphical control over the legend content and overall design compared to GUI systems, which may require more expertise. R seems to be a powerful way of analyzing and processing vast datasets, however the process of building maps is less visually driven and intuitive. 
