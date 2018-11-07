@@ -6,6 +6,8 @@ output: html_document
 ---
 # Assignment 1: Mapping the spatial distribution of greenspace with median house prices, London. 
 
+# test for changes to make sure it works 
+
 ## Choice of a data and aims
 •	Aim is to visualize the spatial distribution of green spaces and transport connections in Greater London, and their relationship with house prices. The main aim is to understand to what extent green space (or type of green space) relates to house prices. Is there monetary value to such amenities that studies have increasingly shown to be benefical for physical/mental health (ref) – are they equitably distributed within London? Can parks be desirable or ‘green walls’? (ref) Mapping transport connections to control for areas which might be more desirable because of their transportation links, and to provide some context. 
 •	The dataset is sourced from Ordinance Survey and Greenspace for Greater London (GiGL) which was made available, in response to the National Park City movement.  To support value of greenspace and their contribution to public health, and includes information on the functions of spaces.  
