@@ -1,141 +1,169 @@
 ---
-title: "KA_assignment_1"
+title: "Assignment_1_KA"
 author: "Katie Adnams"
 date: "7 November 2018"
-output: html_document
+output:
+  html_document: default
+  word_document: default
 ---
 # Assignment 1: Mapping the spatial distribution of greenspace with median house prices, London. 
 
-## Key aims and data sources 
-The two maps produced for this assignment explore the spatial distribution of green spaces in Greater London, and their relationship to house prices. The primary objective is to understand the extent (if any) to which green space affects house prices. Studies have increasingly shown green spaces to be beneficial for physical and mental health (Mitchell and Popham, 2007, Irvine et al, 2010, WHO 2016), so we can further question whether they have a quantifiable value, and whether they equitably distributed within London. Including transport connections in the map controled for areas which might be more desirable because of their connectivity, and provides some visual reference points of major transport hubs. 
+## Overview
+The maps visualise the distribution of green spaces in London, and their relationship to house prices. Studies have shown green spaces are beneficial for physical and mental health (Mitchell and Popham, 2007, Irvine et al, 2010, WHO 2016), so we question their quantifiable value, and their equitable distribution. 
+The greenspaces dataset consists of spatial, nominal data. Median house price data (2014) is imported as a dataframe (CSV) which was joined to Ward boundaries to create a choropleth. A transport layer was added for context, to understand areas that are well connected which might explain higher house prices.
+A grayscale choropleth palette was selected to create a visual contrast between the dataset and the other layers. A green scale palette was used to conform to traditional convention, yet to distinguish between the nominal attributes.
 
-The greenspaces dataset is sourced from Ordinance Survey. Mapping greenspaces in urban areas, it endeavors to support a wider set of government initiatives around health and the environment (ref). The nominal data is mapped below, conveying the function of each space.
-
-London median house price data (2014) was taken from the London Ward atlas dataset. Median values to mitigate the effect of any significant outliers, however a measure that controls for the proportion of different property types (i.e. flats or houses) would improve the quality of the map and any subsequent analysis. 
-
-image:
-![Both final maps](map_arc_1.png)
-
-## Workflows & Cartography 
-### ArcGIS - A GUI-based software.
-Setting up a geodatabase to store feature classes was an intuitive process and results in an easily accessible, editable and managed DBMS. The spatial datasets were imported initially as shapefiles before being exported as feature classes, to mitigate inherent issues with shapefiles and storing attributes to spatial information. Properties of the feature classes were verified to be British National Grid, no re-projections were necessary in this case. 
-Whilst spatial data layers are easily added, there are stringent requirements for ArcGIS to read csv files. This entails a more manual data cleaning process prior to importing the file, which is a considerable drawback for any large datasets required. 
-The house price data was imported as a CSV file, and then joined to a ward boundary shapefile to create a choropleth map. For defining appropriate colour breaks, the dataset distribution was reviewed and Jenks breaks were employed.
-
-A limitation of natural break algorithms is their tendency to miss obvious cut-off points (Monmonier, 2005), or comparison figures such as the London-wide median. For transparency, the variance and cut-off points the histogram can be plotted alongside the map and the London wide median noted. 
-
-image:
-![Natural breaks and histogram](map_arc_1.png)
-
-
-A grayscale colour palette was selected to create a visual contrast between the dataset and the greenspaces and transport link spatial layers. 
-
-To create the greenspace dataset for Greater London only, the select by location tool was used and exported to a feature class. As the geographical dataset is difficult to understand as a whole due to ranges in scale, statistics on the overall number of each type of greenspace in greater London can be added to the legend to provide a level of contextual information. Another key distinguishing feature between the greenspace categories is their area, so a bubble diagram is employed to provide information on their average size. A green scale palette was used to conform to traditional convention, yet to distinguish between the nominal attributes. 
-
-
-image:
-![legends](map_arc_1.png)
-
-Finally, a transport layer was added to provide context, to understand i) areas that are well connected which might explain higher house prices and ii) wards with main interchanges that may be less residential than other wards. It would be useful to include what proportion of a ward is residential to understand the sample sizes the house price data is taken from.
-
-image:
-![Full ArcGIS map](map_arc_1.png)
-
-
-The layout feature of ArcGIS provides a useful tool for exporting map, through dataframes allowing different scale displays and different layers of information. Due to the map’s static nature and high level of information, a central part of London has been displayed, with the entirety of Greater London displayed for context in a smaller scale adjacent. 
-A GUI provides an iterative and visual way to build maps, as it is easy to review the structure and hierarchy of layers in use. This made levels of uncertainty quick to review and evaluate, in this case noting the statistical and visual impact of selecting ward data as opposed to borough data.
-
-## R - Code based software 
-The same map is generated through R, to evaluate the differences in process and output. The process of importing data was efficient: the cleaning of csv file data is automated which created a better workflow for processing the data. R read in different dataset types directly from the internet as well as locally. R seems a more powerful tool for processing large datasets than GUI software such as ArcGIS.  For this particular map, the same shapefiles were used as for the first map.
-```{r Getting the data, include=FALSE}
+ArcGIS map:
+![ArcMap result](ArcMap_GL.png)
+```{r libraries, include=FALSE}
+library(rgdal)
 library(tidyverse)
 library(geojsonio)
 library(sf)
 library(tmap)
 library(tmaptools)
+library(shinyjs)
+
+```
+
+
+R-produced map (note - tmap intended as interactive):
+```{r final map, echo = FALSE}
+
 #read some data attributes
 LondonData <- read_csv("Ward profile/ward-profiles-excel-version.csv", na = "n/a")
+
 WardBoundaries <- read_shape("Wards/London_Ward_CityMerged.shp", as.sf = TRUE)
+
 OS_greenspaces <- read_shape("Greenspaces/OS_LDN_greenspaces.shp", as.sf = TRUE)
+
 os_transport <- read_shape("Transport/gis_osm_railways_free_1.shp", as.sf = TRUE)
+
 #convert to a simple features object
 LondonMapSF <- st_as_sf(WardBoundaries)
 #append the data to the geometries
 LondonMapSF <- append_data(LondonMapSF,LondonData, key.shp = "GSS_CODE", key.data = "New code", ignore.duplicates = TRUE)
-```
 
-The CRS for the layers were verified before proceed to plot the map.
-```{r}
-# pro4 string print
-
-```
-Simple plots were produced to check the distribution of data, similar to the process for ArcGIS.
-```{r}
-# plot histogram
-```
-A simple features object from joining the house price data to the ward boundary shapefile, before employing the library tmaps to create the plots. The colour palette chosen was similar to that of ArcGIS, although ColorBrewer was used, which includes an extensive colour library based on academic research. Jenks natural breaks were specified in the code to classify the colour breaks. 
-```{r Static map}
-# jenks and plot static map
 london_osm <- read_osm(LondonMapSF, type = "osm", zoom = NULL)
-tmap_mode("plot")
- qtm(london_osm) +
-  tm_shape(OS_greenspaces)+
-   tm_polygons(col = "function.",palette="Greens")+
-   tm_layout(legend.show = FALSE) +
-  tm_shape(os_transport)+
-   tm_lines(col = "fclass",palette="PuRd") +
-   tm_layout(legend.show = FALSE)+
-  tm_shape(LondonMapSF)+
-   tm_polygons("Median House Price - 2014", 
-        style="jenks",
-        palette="Greys",
-        midpoint=NA,
-        title="Median House Price - 2014",
-        alpha = 0.8) +
-  tm_compass(position = c("left", "bottom"),type = "arrow") + 
-  tm_scale_bar(position = c("left", "bottom")) +
-  tm_layout(title = "Median House Price - 2014", legend.position = c("right", "bottom"))
 
-```
+#set the projectionsto BNG
+LondonMapSFBNG <- st_transform(LondonMapSF,27700)
+OS_greenspacesBNG <- st_transform(OS_greenspaces,27700)
+OS_transportBNG <- st_transform(os_transport,27700)
 
-In addition the OS basemap was added, and proved useful for viewing the wider context of the map. 
-Using tmaps to view data interactively at multiple scales was beneficial for the data, which wasn’t possible in Arcmap. As the datasets (the OS greenspace layer in particular) are highly detailed, interactive scaling and allowing the user to view layers individually allows more exploratory insight and mitigates any bias of representation. If the viewer could determine cut-off points for the choropleth map, this would further avoid bias of representation. 
 
-```{r}
-# code for plotting interactive map
-library(shinyjs)
 tmap_mode("view")
-tm_shape(LondonMapSF) +
+tm_shape(LondonMapSFBNG) +
     tm_polygons("Median House Price - 2014",
         style="jenks",
         palette="Greys",
         midpoint=NA,
         alpha = 0.5,
         title="Median House Prices")+
-  tm_shape(OS_greenspaces)+
+  tm_shape(OS_greenspacesBNG)+
   tm_polygons(col = "function.",palette="Greens")+
-tm_shape(os_transport)+
+tm_shape(OS_transportBNG)+
    tm_lines(col = "fclass",palette="PuRd") 
+
 ```
 
-A drawback of R is low level of graphical control over the legend content and overall design compared to GUI systems, which may require more expertise. R seems to be a powerful way of analyzing and processing vast datasets, however the process of building maps is less visually driven and intuitive. 
 
-# Limitations
+## ArcGIS - A GUI-based software.
+A geodatabase was set up to store feature classes, creating an accessible DBMS. Spatial datasets were imported as shapefiles before exportation to feature classes, mitigating issues with shapefiles and storing attributes. Projections were British National Grid; no re-projections were necessary. 
+Whilst spatial data layers are easily added, there are requirements for ArcGIS to read csv files. A drawback of ArcGIS is the manual data cleaning process prior to importing csv’s.
+Jenks breaks were employed for defining colour breaks. A limitation of natural break algorithms is their tendency to miss obvious cut-off points (Monmonier, 2005), or comparison figures such as the London-wide median.  
 
-### The datasets
-The house price dataset could be more robust by controlling for the type of housing in each ward. A measure such as ‘median value for a 2 bed flat’ would be more beneficial as housing stock varies largely at a London-wide scale. 
-Due to the small scale of many parks in an urban centre such as London, ward-level data may be too aggregated to determine a relationship.
-The functions of green spaces in the OS dataset are perhaps too detailed for the map’s purpose; the categories could be further aggregated to be graphically clearer. 
+![Jenks breaks](ArcMap_Jenksdiagram.png)
 
-### Uncertainty 
-Administrative boundaries are liable to change over time, which can skew results. In using ward level data, areas changed in 2014 which caused issues when importing data from various online sources. 
-Ward level data was selected as the smallest boundary available for the house price dataset, but as it is an authoritative boundary it is not necessarily reliable and prone to MAUP and ecological fallacies. 
-Ward and borough level data is compared below, which show boroughs as quite heterogenous. Disaggregated data is sometimes possible to improve studies, but in practical terms such data would be difficult to obtain in practical terms due to processes of data collection and anonymization (D.Sui, 2009).
+The select-by-location tool selects the greenspaces intersecting London boundaries. 
+The layout feature is used to export the map. Due to the map’s static nature, a central part of London has been displayed, with Greater London displayed for context adjacent.  
 
-## Implications 
-These maps are exploratory in nature and do not draw a conclusion without further analysis; there does not seem to be any immediate visual correlation between the datasets. The maps explore the equitability of green space and value of green space in London by its association with a quantifiable value (house prices). As there is a growing body of evidence to suggest that green spaces have public health benefits, such maps have the power to inform policies and support the equitable distribution of green spaces, understanding and monitoring their effect over time.  
+![zoomed ArcMap](ArcMap_Zoomed3.jpg)
 
-## References 
+ArcGIS provides a more visual way of mapping, with an intuitive layer structure. Levels of uncertainty are easily evaluated, noting the impact of selecting ward data as opposed to borough data.
+
+![MAUP arcmap ](MAUP_final1.jpg)
+MAUP_final1
+
+##	R – code based software
+Importing data was efficient: csv’s didn’t require prior formatting, creating a better workflow for processing large datasets. 
+
+```{r}
+#read some data attributes
+LondonData <- read_csv("Ward profile/ward-profiles-excel-version.csv", na = "n/a")
+
+WardBoundaries <- read_shape("Wards/London_Ward_CityMerged.shp", as.sf = TRUE)
+
+OS_greenspaces <- read_shape("Greenspaces/OS_LDN_greenspaces.shp", as.sf = TRUE)
+
+os_transport <- read_shape("Transport/gis_osm_railways_free_1.shp", as.sf = TRUE)
+
+
+```
+
+
+
+A sf object was created from joining the house price data to the ward boundary shapefile, before employing the library tmaps to create the plots. 
+
+```{r}
+#convert to a simple features object
+LondonMapSF <- st_as_sf(WardBoundaries)
+#append the data to the geometries
+LondonMapSF <- append_data(LondonMapSF,LondonData, key.shp = "GSS_CODE", key.data = "New code", ignore.duplicates = TRUE)
+
+```
+
+```{r projections}
+#set the projections to BNG using ESPG code for British National Grid
+LondonMapSFBNG <- st_transform(LondonMapSF,27700)
+OS_greenspacesBNG <- st_transform(OS_greenspaces,27700)
+OS_transportBNG <- st_transform(os_transport,27700)
+```
+
+```{r}
+# add basemap if needed - not included currently as choropleth isn't visible
+london_osm <- read_osm(LondonMapSF, type = "osm", zoom = NULL)
+
+# The CRS for the layers were verified above before proceeding to plot the map. The colour palette chosen (color brewer) and Jenks breaks were specified. 
+
+# change tmap mode to "view" is recommend for viewing the data, but as a PDF document is required it is set to plot.
+
+tmap_mode("view")
+  tm_shape(OS_greenspacesBNG)+
+   tm_polygons(col = "function.",palette="Greens")+
+   tm_layout(legend.show = FALSE) +
+  tm_shape(OS_transportBNG)+
+   tm_lines(col = "fclass",palette="PuRd") +
+   tm_layout(legend.show = FALSE)+
+  tm_shape(LondonMapSFBNG)+
+   tm_polygons("Median House Price - 2014", 
+        style="jenks",
+        palette="Greys",
+        midpoint=NA,
+        title="Median House Price - 2014",
+        alpha = 0.5) #+
+ # tm_compass(position = c("left", "bottom"),type = "arrow") + 
+#  tm_scale_bar(position = c("left", "bottom")) +
+#  tm_layout(title = "Median House Price - 2014", legend.position = c("right", "bottom"))
+  
+```
+
+Creating interactive maps was beneficial; interactive scaling allows exploratory viewing of detailed datsets and mitigates biases of representation. If the viewer could determine the colour breaks, this would further avoid bias of representation. 
+
+## Reflections
+
+The house price dataset could be more robust by controlling for the housing types by ward. Due to the small scale of many greenspaces, ward-level data may be too aggregated to visualise any relationship.
+The functions of green spaces in the OS dataset are too detailed for the map’s purpose; the categories could be further aggregated to be graphically clearer. 
+
+Ward data was selected as the smallest boundary available for the house price dataset, but as an authoritative boundary it is prone to MAUP effects and ecological fallacies. Analysing disaggregated data is possible, but in practical terms data would be difficult to obtain due to processes of data collection and anonymization (D.Sui, 2009).
+
+## Implications
+
+These maps explore the equitability and value of London’s green spaces by its association with a quantifiable value (house prices), but further analysis is required to determine a relationship. Considering the evidenced health benefit of green spaces, these maps could convey and inform policies, supporting the equitable distribution of green spaces and monitoring their effect over time.  
+
+
+## References
+
 Monmonier, M., 2005. Lying with Maps. Statistical Science 20, 215–222.
 
 Sui, D., 2009. Ecological Fallacy.  International Encyclopedia of Human Geography
@@ -144,15 +172,20 @@ Sui, D., 2009. Ecological Fallacy.  International Encyclopedia of Human Geograph
 Irvine, K., et al, 2010. Ecological and Psychological value of Urban Green Space in: Jenks, M., Jones, C., eds. Dimensions of the Sustainable City 2. London: Springer. Ch.10 
 Mitchell, R., Popham, F., 2007. Greenspace, urbanity and health: relationships in England. Journal of Epidemiology & Community Health 61, 681–683.
 
+
 World Health Organisation- Regional Office for Europe, 2016. Urban green spaces and health: A review of evidence. World Health Organisation, Copenhagen. Available from: http://www.euro.who.int/__data/assets/pdf_file/0005/321971/Urban-green-spaces-and-health-review-evidence.pdf?ua=1
 
-## Data Sources 
-Greater London Authority, 2015. Ward profiles and atlas. Licensed under the UK Open Government License. Available at: https://data.london.gov.uk/dataset/ward-profiles-and-atlas [accessed 3 December 2017]
+## Data sources
+
+Greater London Authority, 2015. Ward profiles and atlas. Licensed under the UK Open Government License. Available at: https://data.london.gov.uk/dataset/ward-profiles-and-atlas [accessed 3 November 2018]
 
 Ordinance Survey, 2017.OS MasterMap Greenspace Layer. Available at: https://www.ordnancesurvey.co.uk/business-and-government/products/os-mastermap-greenspace.html [accessed 3 November 2018]
+
 Greater London Authority, Statistical GIS Boundary Files for London. Available at:
 https://data.london.gov.uk/dataset/statistical-gis-boundary-files-london [accessed 4 November 2018]
 
-Transport data, OpenStreetMap for Greater London. Available at: https://download.geofabrik.de/europe/great-britain/england/greater-london.html [accessed 29 October 2018]
+Transport data, OpenStreeMap for Greater London. Available at: https://download.geofabrik.de/europe/great-britain/england/greater-london.html [accessed 29 October 2018]
+
+
 
 
